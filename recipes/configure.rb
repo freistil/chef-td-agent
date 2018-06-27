@@ -10,6 +10,21 @@ Chef::Provider.send(:include, TdAgent::Version)
 reload_action = (reload_available?) ? :reload : :restart
 
 major_version = major
+
+# To force the user/group into the init script
+template '/etc/init.d/td-agent' do
+  source 'td-agent.init.erb'
+  owner 'root'
+  group 'root'
+  mode '0755'
+  variables(
+    :user => node["td_agent"]["user"],
+    :group => node["td_agent"]["group"]
+  )
+  notifies :restart, "service[td-agent]", :delayed
+end
+# ToDO: Do the right systemd-thing
+
 template "/etc/td-agent/td-agent.conf" do
   owner  node["td_agent"]["user"]
   group  node["td_agent"]["group"]

@@ -7,12 +7,23 @@
 Chef::Recipe.send(:include, TdAgent::Version)
 Chef::Provider.send(:include, TdAgent::Version)
 
-group node["td_agent"]["group"] do
-  group_name node["td_agent"]["group"]
-  gid node["td_agent"]["gid"] if node["td_agent"]["gid"]
+
+
+# Group 'td-agent' is required for the package to install(!)
+group 'td-agent' do
+  group_name 'td-agent'
   system true
-  action     [:create]
+  action [:create]
 end
+
+# I don't want to re-manage group "adm"
+#
+# group node["td_agent"]["group"] do
+#   group_name node["td_agent"]["group"]
+#   gid node["td_agent"]["gid"] if node["td_agent"]["gid"]
+#   system true
+#   action     [:create]
+# end
 
 user node["td_agent"]["user"] do
   comment  'td-agent'
@@ -24,20 +35,6 @@ user node["td_agent"]["user"] do
   password nil
   manage_home true
   action   [:create, :manage]
-end
-
-directory '/var/run/td-agent/' do
-  owner  node["td_agent"]["user"]
-  group  node["td_agent"]["group"]
-  mode   '0755'
-  action :create
-end
-
-directory '/etc/td-agent/' do
-  owner  node["td_agent"]["user"]
-  group  node["td_agent"]["group"]
-  mode   '0755'
-  action :create
 end
 
 case node['platform_family']
@@ -111,13 +108,6 @@ when "rhel", "amazon"
   end
 end
 
-directory "/etc/td-agent/conf.d" do
-  owner node["td_agent"]["user"]
-  group node["td_agent"]["group"]
-  mode "0755"
-  only_if { node["td_agent"]["includes"] }
-end
-
 package "td-agent" do
   retries 3
   retry_delay 10
@@ -127,4 +117,23 @@ package "td-agent" do
   else
     action :upgrade
   end
+end
+
+directory "/etc/td-agent/conf.d" do
+  owner node["td_agent"]["user"]
+  group node["td_agent"]["group"]
+  mode "0755"
+  only_if { node["td_agent"]["includes"] }
+end
+
+directory '/var/run/td-agent/' do
+  owner  node["td_agent"]["user"]
+  group  node["td_agent"]["group"]
+  mode   '0755'
+end
+
+directory '/etc/td-agent/' do
+  owner  node["td_agent"]["user"]
+  group  node["td_agent"]["group"]
+  mode   '0755'
 end
